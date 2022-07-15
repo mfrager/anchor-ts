@@ -205,7 +205,7 @@ export class AnchorProvider implements Provider {
     });
 
     if (!register(tx.signature)) {
-      throw new Error("Signature registration failed"));
+      throw new Error("Signature registration failed");
     }
 
     const rawTx = tx.serialize();
