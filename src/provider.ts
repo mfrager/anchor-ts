@@ -43,7 +43,7 @@ export default interface Provider {
   ): Promise<SuccessfulTxSimulationResponse>;
   registerSendAndConfirm?(
     tx: Transaction,
-    register: (sig: string) => boolean,
+    register: (sig: Buffer | null) => boolean,
     signers?: Signer[],
     opts?: ConfirmOptions
   ): Promise<TransactionSignature>;
@@ -186,7 +186,7 @@ export class AnchorProvider implements Provider {
    */
   async registerSendAndConfirm(
     tx: Transaction,
-    register: (sig: string) => boolean,
+    register: (sig: Buffer | null) => boolean,
     signers?: Signer[],
     opts?: ConfirmOptions
   ): Promise<TransactionSignature> {
