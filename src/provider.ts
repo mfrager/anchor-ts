@@ -41,6 +41,12 @@ export default interface Provider {
     commitment?: Commitment,
     includeAccounts?: boolean | PublicKey[]
   ): Promise<SuccessfulTxSimulationResponse>;
+  registerAndSend?(
+    tx: Transaction,
+    register: (sig: Buffer | null) => boolean,
+    signers?: Signer[],
+    opts?: ConfirmOptions
+  ): Promise<TransactionSignature>;
   registerSendAndConfirm?(
     tx: Transaction,
     register: (sig: Buffer | null) => boolean,
@@ -237,6 +243,43 @@ export class AnchorProvider implements Provider {
   }
 
   /**
+   * Registers a transaction signature upstream then upon success sends the given transaction without confirming the transaction immediately.
+   *
+   * @param tx          The transaction to send.
+   * @param register    The register callback.
+   * @param signers     The signers of the transaction.
+   * @param opts        Transaction confirmation options.
+   */
+  async registerAndSend(
+    tx: Transaction,
+    register: (sig: Buffer | null) => boolean,
+    signers?: Signer[],
+    opts?: ConfirmOptions
+  ): Promise<TransactionSignature> {
+    if (opts === undefined) {
+      opts = this.opts;
+    }
+
+    tx.feePayer = this.wallet.publicKey;
+    tx.recentBlockhash = (
+      await this.connection.getRecentBlockhash(opts.preflightCommitment)
+    ).blockhash;
+
+    tx = await this.wallet.signTransaction(tx);
+    (signers ?? []).forEach((kp) => {
+      tx.partialSign(kp);
+    });
+
+    if (!register(tx.signature)) {
+      throw new Error("Signature registration failed");
+    }
+
+    const rawTx = tx.serialize();
+
+    return await sendRawTransaction(this.connection, rawTx, opts);
+  }
+
+  /**
    * Similar to `send`, but for an array of transactions and signers.
    */
   async sendAll(
@@ -371,6 +414,26 @@ async function sendAndConfirmRawTransaction(
 
   return signature;
 }
+
+// Copy of Connection.sendAndConfirmRawTransaction that just sends
+async function sendRawTransaction(
+  connection: Connection,
+  rawTransaction: Buffer,
+  options?: ConfirmOptions
+): Promise<TransactionSignature> {
+  const sendOptions = options && {
+    skipPreflight: options.skipPreflight,
+    preflightCommitment: options.preflightCommitment || options.commitment,
+  };
+
+  const signature = await connection.sendRawTransaction(
+    rawTransaction,
+    sendOptions
+  );
+
+  return signature;
+}
+
 
 class ConfirmError extends Error {
   constructor(message?: string) {
