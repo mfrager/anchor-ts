@@ -159,6 +159,30 @@ class AnchorProvider {
         }
     }
     /**
+     * Registers a transaction signature upstream then upon success sends the given transaction without confirming the transaction immediately.
+     *
+     * @param tx          The transaction to send.
+     * @param register    The register callback.
+     * @param signers     The signers of the transaction.
+     * @param opts        Transaction confirmation options.
+     */
+    async registerAndSend(tx, register, signers, opts) {
+        if (opts === undefined) {
+            opts = this.opts;
+        }
+        tx.feePayer = this.wallet.publicKey;
+        tx.recentBlockhash = (await this.connection.getRecentBlockhash(opts.preflightCommitment)).blockhash;
+        tx = await this.wallet.signTransaction(tx);
+        (signers !== null && signers !== void 0 ? signers : []).forEach((kp) => {
+            tx.partialSign(kp);
+        });
+        if (!register(tx.signature)) {
+            throw new Error("Signature registration failed");
+        }
+        const rawTx = tx.serialize();
+        return await sendRawTransaction(this.connection, rawTx, opts);
+    }
+    /**
      * Similar to `send`, but for an array of transactions and signers.
      */
     async sendAll(txWithSigners, opts) {
@@ -223,6 +247,15 @@ async function sendAndConfirmRawTransaction(connection, rawTransaction, options)
     if (status.err) {
         throw new ConfirmError(`Raw transaction ${signature} failed (${JSON.stringify(status)})`);
     }
+    return signature;
+}
+// Copy of Connection.sendAndConfirmRawTransaction that just sends
+async function sendRawTransaction(connection, rawTransaction, options) {
+    const sendOptions = options && {
+        skipPreflight: options.skipPreflight,
+        preflightCommitment: options.preflightCommitment || options.commitment,
+    };
+    const signature = await connection.sendRawTransaction(rawTransaction, sendOptions);
     return signature;
 }
 class ConfirmError extends Error {
