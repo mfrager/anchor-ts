@@ -129,7 +129,7 @@ class AnchorProvider {
         (signers !== null && signers !== void 0 ? signers : []).forEach((kp) => {
             tx.partialSign(kp);
         });
-        if (!register(tx.signature)) {
+        if (!await register(tx.signature)) {
             throw new Error("Signature registration failed");
         }
         const rawTx = tx.serialize();
@@ -176,7 +176,7 @@ class AnchorProvider {
         (signers !== null && signers !== void 0 ? signers : []).forEach((kp) => {
             tx.partialSign(kp);
         });
-        if (!register(tx.signature)) {
+        if (!await register(tx.signature)) {
             throw new Error("Signature registration failed");
         }
         const rawTx = tx.serialize();

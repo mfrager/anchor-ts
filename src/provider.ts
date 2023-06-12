@@ -43,13 +43,13 @@ export default interface Provider {
   ): Promise<SuccessfulTxSimulationResponse>;
   registerAndSend?(
     tx: Transaction,
-    register: (sig: Buffer | null) => boolean,
+    register: (sig: Buffer | null) => Promise<boolean>,
     signers?: Signer[],
     opts?: ConfirmOptions
   ): Promise<TransactionSignature>;
   registerSendAndConfirm?(
     tx: Transaction,
-    register: (sig: Buffer | null) => boolean,
+    register: (sig: Buffer | null) => Promise<boolean>,
     signers?: Signer[],
     opts?: ConfirmOptions
   ): Promise<TransactionSignature>;
@@ -192,7 +192,7 @@ export class AnchorProvider implements Provider {
    */
   async registerSendAndConfirm(
     tx: Transaction,
-    register: (sig: Buffer | null) => boolean,
+    register: (sig: Buffer | null) => Promise<boolean>,
     signers?: Signer[],
     opts?: ConfirmOptions
   ): Promise<TransactionSignature> {
@@ -210,7 +210,7 @@ export class AnchorProvider implements Provider {
       tx.partialSign(kp);
     });
 
-    if (!register(tx.signature)) {
+    if (! await register(tx.signature)) {
       throw new Error("Signature registration failed");
     }
 
@@ -252,7 +252,7 @@ export class AnchorProvider implements Provider {
    */
   async registerAndSend(
     tx: Transaction,
-    register: (sig: Buffer | null) => boolean,
+    register: (sig: Buffer | null) => Promise<boolean>,
     signers?: Signer[],
     opts?: ConfirmOptions
   ): Promise<TransactionSignature> {
@@ -270,7 +270,7 @@ export class AnchorProvider implements Provider {
       tx.partialSign(kp);
     });
 
-    if (!register(tx.signature)) {
+    if (! await register(tx.signature)) {
       throw new Error("Signature registration failed");
     }
 

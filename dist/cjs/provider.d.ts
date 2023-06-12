@@ -11,8 +11,8 @@ export default interface Provider {
         signers?: Signer[];
     }[], opts?: ConfirmOptions): Promise<Array<TransactionSignature>>;
     simulate?(tx: Transaction, signers?: Signer[], commitment?: Commitment, includeAccounts?: boolean | PublicKey[]): Promise<SuccessfulTxSimulationResponse>;
-    registerAndSend?(tx: Transaction, register: (sig: Buffer | null) => boolean, signers?: Signer[], opts?: ConfirmOptions): Promise<TransactionSignature>;
-    registerSendAndConfirm?(tx: Transaction, register: (sig: Buffer | null) => boolean, signers?: Signer[], opts?: ConfirmOptions): Promise<TransactionSignature>;
+    registerAndSend?(tx: Transaction, register: (sig: Buffer | null) => Promise<boolean>, signers?: Signer[], opts?: ConfirmOptions): Promise<TransactionSignature>;
+    registerSendAndConfirm?(tx: Transaction, register: (sig: Buffer | null) => Promise<boolean>, signers?: Signer[], opts?: ConfirmOptions): Promise<TransactionSignature>;
 }
 /**
  * The network and wallet context used to send transactions paid for and signed
@@ -62,7 +62,7 @@ export declare class AnchorProvider implements Provider {
      * @param signers     The signers of the transaction.
      * @param opts        Transaction confirmation options.
      */
-    registerSendAndConfirm(tx: Transaction, register: (sig: Buffer | null) => boolean, signers?: Signer[], opts?: ConfirmOptions): Promise<TransactionSignature>;
+    registerSendAndConfirm(tx: Transaction, register: (sig: Buffer | null) => Promise<boolean>, signers?: Signer[], opts?: ConfirmOptions): Promise<TransactionSignature>;
     /**
      * Registers a transaction signature upstream then upon success sends the given transaction without confirming the transaction immediately.
      *
@@ -71,7 +71,7 @@ export declare class AnchorProvider implements Provider {
      * @param signers     The signers of the transaction.
      * @param opts        Transaction confirmation options.
      */
-    registerAndSend(tx: Transaction, register: (sig: Buffer | null) => boolean, signers?: Signer[], opts?: ConfirmOptions): Promise<TransactionSignature>;
+    registerAndSend(tx: Transaction, register: (sig: Buffer | null) => Promise<boolean>, signers?: Signer[], opts?: ConfirmOptions): Promise<TransactionSignature>;
     /**
      * Similar to `send`, but for an array of transactions and signers.
      */
