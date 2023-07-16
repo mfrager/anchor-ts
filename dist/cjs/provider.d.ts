@@ -12,6 +12,10 @@ export default interface Provider {
     }[], opts?: ConfirmOptions): Promise<Array<TransactionSignature>>;
     simulate?(tx: Transaction, signers?: Signer[], commitment?: Commitment, includeAccounts?: boolean | PublicKey[]): Promise<SuccessfulTxSimulationResponse>;
     registerAndSend?(tx: Transaction, register: (sig: Buffer | null) => Promise<boolean>, signers?: Signer[], opts?: ConfirmOptions): Promise<TransactionSignature>;
+    registerAndSendAll?(txWithSigners: {
+        tx: Transaction;
+        signers?: Signer[];
+    }[], register: (sig: Buffer | null) => Promise<boolean>, skipConfirm: boolean, opts?: ConfirmOptions): Promise<Array<TransactionSignature>>;
     registerSendAndConfirm?(tx: Transaction, register: (sig: Buffer | null) => Promise<boolean>, signers?: Signer[], opts?: ConfirmOptions): Promise<TransactionSignature>;
 }
 /**
@@ -79,6 +83,13 @@ export declare class AnchorProvider implements Provider {
         tx: Transaction;
         signers?: Signer[];
     }[], opts?: ConfirmOptions): Promise<Array<TransactionSignature>>;
+    /**
+     * Similar to `send`, but for an array of transactions and signers.
+     */
+    registerAndSendAll(txWithSigners: {
+        tx: Transaction;
+        signers?: Signer[];
+    }[], register: (sig: Buffer | null) => Promise<boolean>, skipConfirm?: boolean, opts?: ConfirmOptions): Promise<Array<TransactionSignature>>;
     /**
      * Simulates the given transaction, returning emitted logs from execution.
      *

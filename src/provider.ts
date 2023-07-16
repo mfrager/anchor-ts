@@ -47,6 +47,12 @@ export default interface Provider {
     signers?: Signer[],
     opts?: ConfirmOptions
   ): Promise<TransactionSignature>;
+  registerAndSendAll?(
+    txWithSigners: { tx: Transaction; signers?: Signer[] }[],
+    register: (sig: Buffer | null) => Promise<boolean>,
+    skipConfirm: boolean,
+    opts?: ConfirmOptions
+  ): Promise<Array<TransactionSignature>>;
   registerSendAndConfirm?(
     tx: Transaction,
     register: (sig: Buffer | null) => Promise<boolean>,
@@ -321,6 +327,65 @@ export class AnchorProvider implements Provider {
 
     return sigs;
   }
+
+  /**
+   * Similar to `send`, but for an array of transactions and signers.
+   */
+  async registerAndSendAll(
+    txWithSigners: { tx: Transaction; signers?: Signer[] }[],
+    register: (sig: Buffer | null) => Promise<boolean>,
+    skipConfirm: boolean = false,
+    opts?: ConfirmOptions
+  ): Promise<Array<TransactionSignature>> {
+    if (opts === undefined) {
+      opts = this.opts;
+    }
+    const blockhash = await this.connection.getRecentBlockhash(
+      opts.preflightCommitment
+    );
+
+    let txs = txWithSigners.map((r) => {
+      let tx = r.tx;
+      let signers = r.signers ?? [];
+
+      tx.feePayer = this.wallet.publicKey;
+      tx.recentBlockhash = blockhash.blockhash;
+
+      signers.forEach((kp) => {
+        tx.partialSign(kp);
+      });
+
+      return tx;
+    });
+
+    for (let j = 0; j < txs.length; j += 1) {
+      let st = txs[j]
+      if (! await register(st.signature)) {
+        throw new Error("Signature registration failed");
+      }
+    }
+
+    const signedTxs = await this.wallet.signAllTransactions(txs);
+    const sigs: TransactionSignature[] = [];
+
+    for (let k = 0; k < txs.length; k += 1) {
+      const tx = signedTxs[k];
+      const rawTx = tx.serialize();
+      if (skipConfirm) {
+        sigs.push(
+          await sendRawTransaction(this.connection, rawTx, opts)
+        );
+      } else {
+        sigs.push(
+          await sendAndConfirmRawTransaction(this.connection, rawTx, opts)
+        );
+      }
+    }
+
+    return sigs;
+  }
+
+
 
   /**
    * Simulates the given transaction, returning emitted logs from execution.

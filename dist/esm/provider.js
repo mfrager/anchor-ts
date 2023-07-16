@@ -208,6 +208,45 @@ export class AnchorProvider {
         return sigs;
     }
     /**
+     * Similar to `send`, but for an array of transactions and signers.
+     */
+    async registerAndSendAll(txWithSigners, register, skipConfirm = false, opts) {
+        if (opts === undefined) {
+            opts = this.opts;
+        }
+        const blockhash = await this.connection.getRecentBlockhash(opts.preflightCommitment);
+        let txs = txWithSigners.map((r) => {
+            var _a;
+            let tx = r.tx;
+            let signers = (_a = r.signers) !== null && _a !== void 0 ? _a : [];
+            tx.feePayer = this.wallet.publicKey;
+            tx.recentBlockhash = blockhash.blockhash;
+            signers.forEach((kp) => {
+                tx.partialSign(kp);
+            });
+            return tx;
+        });
+        for (let j = 0; j < txs.length; j += 1) {
+            let st = txs[j];
+            if (!await register(st.signature)) {
+                throw new Error("Signature registration failed");
+            }
+        }
+        const signedTxs = await this.wallet.signAllTransactions(txs);
+        const sigs = [];
+        for (let k = 0; k < txs.length; k += 1) {
+            const tx = signedTxs[k];
+            const rawTx = tx.serialize();
+            if (skipConfirm) {
+                sigs.push(await sendRawTransaction(this.connection, rawTx, opts));
+            }
+            else {
+                sigs.push(await sendAndConfirmRawTransaction(this.connection, rawTx, opts));
+            }
+        }
+        return sigs;
+    }
+    /**
      * Simulates the given transaction, returning emitted logs from execution.
      *
      * @param tx      The transaction to send.
