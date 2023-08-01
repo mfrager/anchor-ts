@@ -358,15 +358,15 @@ export class AnchorProvider implements Provider {
       return tx;
     });
 
-    for (let j = 0; j < txs.length; j += 1) {
-      let st = txs[j]
+    const signedTxs = await this.wallet.signAllTransactions(txs);
+    const sigs: TransactionSignature[] = [];
+
+    for (let j = 0; j < signedTxs.length; j += 1) {
+      let st = signedTxs[j];
       if (! await register(st.signature)) {
         throw new Error("Signature registration failed");
       }
     }
-
-    const signedTxs = await this.wallet.signAllTransactions(txs);
-    const sigs: TransactionSignature[] = [];
 
     for (let k = 0; k < txs.length; k += 1) {
       const tx = signedTxs[k];
